@@ -54,29 +54,37 @@ class Generator(object):
     def __call__(self, z):
         with tf.variable_scope(self.name) as vs:
             bs = tf.shape(z)[0]
-            fc1 = tc.layers.fully_connected(z, 1024,
-                                            weights_initializer=tf.random_normal_initializer(stddev=0.02),
-                                            weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
-                                            activation_fn=tf.identity)
+            fc1 = tc.layers.fully_connected(
+                z, 1024,
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
+                activation_fn=tf.identity
+            )
             fc1 = tc.layers.batch_norm(fc1)
             fc1 = tf.nn.relu(fc1)
-            fc2 = tc.layers.fully_connected(fc1, 7 * 7 * 128,
-                                            weights_initializer=tf.random_normal_initializer(stddev=0.02),
-                                            weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
-                                            activation_fn=tf.identity)
+            fc2 = tc.layers.fully_connected(
+                fc1, 7 * 7 * 128,
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
+                activation_fn=tf.identity
+            )
             fc2 = tf.reshape(fc2, tf.pack([bs, 7, 7, 128]))
             fc2 = tc.layers.batch_norm(fc2)
             fc2 = tf.nn.relu(fc2)
-            conv1 = tc.layers.convolution2d_transpose(fc2, 64, [4, 4], [2, 2],
-                                                      weights_initializer=tf.random_normal_initializer(stddev=0.02),
-                                                      weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
-                                                      activation_fn=tf.identity)
+            conv1 = tc.layers.convolution2d_transpose(
+                fc2, 64, [4, 4], [2, 2],
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
+                activation_fn=tf.identity
+            )
             conv1 = tc.layers.batch_norm(conv1)
             conv1 = tf.nn.relu(conv1)
-            conv2 = tc.layers.convolution2d_transpose(conv1, 1, [4, 4], [2, 2],
-                                                      weights_initializer=tf.random_normal_initializer(stddev=0.02),
-                                                      weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
-                                                      activation_fn=tf.sigmoid)
+            conv2 = tc.layers.convolution2d_transpose(
+                conv1, 1, [4, 4], [2, 2],
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
+                activation_fn=tf.sigmoid
+            )
             conv2 = tf.reshape(conv2, tf.pack([bs, 784]))
             return conv2
 

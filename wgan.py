@@ -3,32 +3,16 @@ import time
 import argparse
 import importlib
 import tensorflow as tf
-import numpy as np
 import tensorflow.contrib as tc
 import matplotlib.pyplot as plt
 
-
-def split(x):
-    assert type(x) == int
-    t = int(np.floor(np.sqrt(x)))
-    for a in range(t, 0, -1):
-        if x % a == 0:
-            return a, x / a
-
-
-def grid_transform(x, size):
-    a, b = split(x.shape[0])
-    h, w, c = size[0], size[1], size[2]
-    x = np.reshape(x, [a, b, h, w, c])
-    x = np.transpose(x, [0, 2, 1, 3, 4])
-    x = np.reshape(x, [a * h, b * w, c])
-    if x.shape[2] == 1:
-        x = np.squeeze(x, axis=2)
-    return x
+from visualize import *
 
 
 class WassersteinGAN(object):
-    def __init__(self, g_net, d_net, x_sampler, z_sampler):
+    def __init__(self, g_net, d_net, x_sampler, z_sampler, data, model):
+        self.model = model
+        self.data = data
         self.g_net = g_net
         self.d_net = d_net
         self.x_sampler = x_sampler
@@ -53,8 +37,10 @@ class WassersteinGAN(object):
         self.g_loss_reg = self.g_loss + self.reg
         self.d_loss_reg = self.d_loss + self.reg
 
-        self.d_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5).minimize(self.d_loss_reg, var_list=self.d_net.vars)
-        self.g_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5).minimize(self.g_loss_reg, var_list=self.g_net.vars)
+        self.d_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
+            .minimize(self.d_loss_reg, var_list=self.d_net.vars)
+        self.g_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
+            .minimize(self.g_loss_reg, var_list=self.g_net.vars)
 
         self.d_clip = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.d_net.vars]
         self.sess = tf.Session()
@@ -93,13 +79,10 @@ class WassersteinGAN(object):
             if t % 100 == 0:
                 bz = self.z_sampler(batch_size, self.z_dim)
                 bx = self.sess.run(self.x_, feed_dict={self.z: bz})
-                bx = grid_transform(xs.data2img(bx), size=xs.shape)
-                if len(bx.shape) > 2:
-                    plt.imshow(bx)
-                else:
-                    plt.imshow(bx, cmap='gray')
-                plt.show()
-                plt.pause(0.01)
+                bx = xs.data2img(bx)
+                fig = plt.figure(self.data + '.' + self.model)
+                grid_show(fig, bx, xs.shape)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
@@ -114,5 +97,5 @@ if __name__ == '__main__':
     zs = data.NoiseSampler()
     d_net = model.Discriminator()
     g_net = model.Generator()
-    wgan = WassersteinGAN(g_net, d_net, xs, zs)
+    wgan = WassersteinGAN(g_net, d_net, xs, zs, args.data, args.model)
     wgan.train()
