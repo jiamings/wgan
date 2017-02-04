@@ -4,7 +4,6 @@ import argparse
 import importlib
 import tensorflow as tf
 import tensorflow.contrib as tc
-import matplotlib.pyplot as plt
 
 from visualize import *
 
@@ -51,8 +50,8 @@ class WassersteinGAN(object):
         start_time = time.time()
         for t in range(0, num_batches):
             d_iters = 5
-            #if t % 500 == 0 or t < 25:
-            #     d_iters = 100
+            if t % 500 == 0 or t < 25:
+                 d_iters = 100
 
             for _ in range(0, d_iters):
                 bx = self.x_sampler(batch_size)
@@ -82,6 +81,7 @@ class WassersteinGAN(object):
                 bx = xs.data2img(bx)
                 fig = plt.figure(self.data + '.' + self.model)
                 grid_show(fig, bx, xs.shape)
+                fig.savefig('logs/{}/{}.pdf'.format(self.data, t/100))
 
 
 if __name__ == '__main__':

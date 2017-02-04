@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 
 
@@ -22,11 +25,9 @@ def grid_transform(x, size):
 
 
 def grid_show(fig, x, size):
-    ax = fig.subplots(111)
+    ax = fig.add_subplot(111)
     x = grid_transform(x, size)
     if len(x.shape) > 2:
         ax.imshow(x)
     else:
         ax.imshow(x, cmap='gray')
-    plt.show()
-    plt.pause(0.01)
