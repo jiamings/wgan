@@ -15,31 +15,28 @@ class Discriminator(object):
         with tf.variable_scope(self.name) as vs:
             if reuse:
                 vs.reuse_variables()
-            with tf.variable_scope(self.name) as vs:
-                if reuse:
-                    vs.reuse_variables()
-                bs = tf.shape(x)[0]
-                x = tf.reshape(x, [bs, 28, 28, 1])
-                conv1 = tc.layers.convolution2d(
-                    x, 64, [4, 4], [2, 2],
-                    weights_initializer=tf.random_normal_initializer(stddev=0.02),
-                    activation_fn=tf.identity
-                )
-                conv1 = leaky_relu(conv1)
-                conv2 = tc.layers.convolution2d(
-                    conv1, 128, [4, 4], [2, 2],
-                    weights_initializer=tf.random_normal_initializer(stddev=0.02),
-                    activation_fn=tf.identity
-                )
-                conv2 = leaky_relu(tc.layers.batch_norm(conv2))
-                conv2 = tcl.flatten(conv2)
-                fc1 = tc.layers.fully_connected(
-                    conv2, 1024,
-                    weights_initializer=tf.random_normal_initializer(stddev=0.02),
-                    activation_fn=tf.identity
-                )
-                fc1 = leaky_relu(tc.layers.batch_norm(fc1))
-                fc2 = tc.layers.fully_connected(fc1, 1, activation_fn=tf.identity)
+            bs = tf.shape(x)[0]
+            x = tf.reshape(x, [bs, 28, 28, 1])
+            conv1 = tc.layers.convolution2d(
+                x, 64, [4, 4], [2, 2],
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                activation_fn=tf.identity
+            )
+            conv1 = leaky_relu(conv1)
+            conv2 = tc.layers.convolution2d(
+                conv1, 128, [4, 4], [2, 2],
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                activation_fn=tf.identity
+            )
+            conv2 = leaky_relu(tc.layers.batch_norm(conv2))
+            conv2 = tcl.flatten(conv2)
+            fc1 = tc.layers.fully_connected(
+                conv2, 1024,
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                activation_fn=tf.identity
+            )
+            fc1 = leaky_relu(tc.layers.batch_norm(fc1))
+            fc2 = tc.layers.fully_connected(fc1, 1, activation_fn=tf.identity)
             return fc2
 
     @property
@@ -58,22 +55,35 @@ class Generator(object):
 
     def __call__(self, z):
         with tf.variable_scope(self.name) as vs:
-            bs = tf.shape(z)[0]
-            fc1 = tc.layers.fully_connected(
-                z, 1024,
+            fc = z
+            fc = tcl.fully_connected(
+                fc, 512,
                 weights_initializer=tf.random_normal_initializer(stddev=0.02),
                 weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
-                activation_fn=tf.identity
+                activation_fn=tcl.batch_norm
             )
-            fc1 = tc.layers.batch_norm(fc1)
-            fc1 = tf.nn.relu(fc1)
-            fc2 = tc.layers.fully_connected(
-                fc1, 784,
+            fc = leaky_relu(fc)
+            fc = tcl.fully_connected(
+                fc, 512,
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
+                activation_fn=tcl.batch_norm
+            )
+            fc = leaky_relu(fc)
+            fc = tcl.fully_connected(
+                fc, 512,
+                weights_initializer=tf.random_normal_initializer(stddev=0.02),
+                weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
+                activation_fn=tcl.batch_norm
+            )
+            fc = leaky_relu(fc)
+            fc = tc.layers.fully_connected(
+                fc, 784,
                 weights_initializer=tf.random_normal_initializer(stddev=0.02),
                 weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
                 activation_fn=tf.sigmoid
             )
-            return fc2
+            return fc
 
     @property
     def vars(self):

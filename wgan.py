@@ -42,7 +42,8 @@ class WassersteinGAN(object):
             .minimize(self.g_loss_reg, var_list=self.g_net.vars)
 
         self.d_clip = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.d_net.vars]
-        self.sess = tf.Session()
+        gpu_options = tf.GPUOptions(allow_growth=True)
+        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
     def train(self, batch_size=64, num_batches=1000000):
         plt.ion()
