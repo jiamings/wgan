@@ -36,12 +36,10 @@ class WassersteinGAN(object):
         self.g_loss_reg = self.g_loss + self.reg
         self.d_loss_reg = self.d_loss + self.reg
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.update_ops = tf.no_op()
-
-        self.d_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
-            .minimize(self.d_loss_reg, var_list=self.d_net.vars)
-        self.g_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
-            .minimize(self.g_loss_reg, var_list=self.g_net.vars)
+            self.d_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
+                .minimize(self.d_loss_reg, var_list=self.d_net.vars)
+            self.g_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
+                .minimize(self.g_loss_reg, var_list=self.g_net.vars)
 
         self.d_clip = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.d_net.vars]
         gpu_options = tf.GPUOptions(allow_growth=True)
@@ -63,9 +61,9 @@ class WassersteinGAN(object):
                 self.sess.run(self.d_rmsprop, feed_dict={self.x: bx, self.z: bz})
 
             bz = self.z_sampler(batch_size, self.z_dim)
-            self.sess.run(self.g_rmsprop, feed_dict={self.z: bz})
+            self.sess.run(self.g_rmsprop, feed_dict={self.z: bz, self.x: bx})
 
-            if t % 100 == 0 or t < 100:
+            if t % 100 == 0:
                 bx = self.x_sampler(batch_size)
                 bz = self.z_sampler(batch_size, self.z_dim)
 
@@ -73,11 +71,10 @@ class WassersteinGAN(object):
                     self.d_loss, feed_dict={self.x: bx, self.z: bz}
                 )
                 g_loss = self.sess.run(
-                    self.g_loss, feed_dict={self.z: bz}
+                    self.g_loss, feed_dict={self.z: bz, self.x: bx}
                 )
-                self.sess.run(self.update_ops)
                 print('Iter [%8d] Time [%5.4f] d_loss [%.4f] g_loss [%.4f]' %
-                        (t + 1, time.time() - start_time, d_loss - g_loss, g_loss))
+                        (t, time.time() - start_time, d_loss - g_loss, g_loss))
 
             if t % 100 == 0:
                 bz = self.z_sampler(batch_size, self.z_dim)

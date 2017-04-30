@@ -29,14 +29,14 @@ class Discriminator(object):
                 weights_initializer=tf.random_normal_initializer(stddev=0.02),
                 activation_fn=tf.identity
             )
-            conv2 = leaky_relu(tc.layers.batch_norm(conv2))
+            conv2 = leaky_relu(conv2)
             conv2 = tcl.flatten(conv2)
             fc1 = tc.layers.fully_connected(
                 conv2, 1024,
                 weights_initializer=tf.random_normal_initializer(stddev=0.02),
                 activation_fn=tf.identity
             )
-            fc1 = leaky_relu(tc.layers.batch_norm(fc1))
+            fc1 = leaky_relu(fc1)
             fc2 = tc.layers.fully_connected(fc1, 1, activation_fn=tf.identity)
             return fc2
 

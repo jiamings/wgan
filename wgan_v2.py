@@ -3,7 +3,7 @@ import time
 import argparse
 import importlib
 import tensorflow as tf
-import tensorflow.contrib as tc
+from scipy.misc import imsave
 
 from visualize import *
 
@@ -40,8 +40,6 @@ class WassersteinGAN(object):
 
         self.d_loss = self.d_loss + ddx
 
-        print(self.d_loss.get_shape().as_list())
-
         self.d_adam, self.g_adam = None, None
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
             self.d_adam = tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9)\
@@ -58,8 +56,8 @@ class WassersteinGAN(object):
         start_time = time.time()
         for t in range(0, num_batches):
             d_iters = 5
-            if t % 500 == 0 or t < 25:
-                 d_iters = 100
+            #if t % 500 == 0 or t < 25:
+            #     d_iters = 100
 
             for _ in range(0, d_iters):
                 bx = self.x_sampler(batch_size)
@@ -67,9 +65,9 @@ class WassersteinGAN(object):
                 self.sess.run(self.d_adam, feed_dict={self.x: bx, self.z: bz})
 
             bz = self.z_sampler(batch_size, self.z_dim)
-            self.sess.run(self.g_adam, feed_dict={self.z: bz})
+            self.sess.run(self.g_adam, feed_dict={self.z: bz, self.x: bx})
 
-            if t % 100 == 0 or t < 100:
+            if t % 100 == 0:
                 bx = self.x_sampler(batch_size)
                 bz = self.z_sampler(batch_size, self.z_dim)
 
@@ -80,15 +78,17 @@ class WassersteinGAN(object):
                     self.g_loss, feed_dict={self.z: bz}
                 )
                 print('Iter [%8d] Time [%5.4f] d_loss [%.4f] g_loss [%.4f]' %
-                        (t + 1, time.time() - start_time, d_loss - g_loss, g_loss))
+                        (t, time.time() - start_time, d_loss, g_loss))
 
             if t % 100 == 0:
                 bz = self.z_sampler(batch_size, self.z_dim)
                 bx = self.sess.run(self.x_, feed_dict={self.z: bz})
                 bx = xs.data2img(bx)
-                fig = plt.figure(self.data + '.' + self.model)
-                grid_show(fig, bx, xs.shape)
-                fig.savefig('logs/{}/{}.png'.format(self.data, t/100))
+                #fig = plt.figure(self.data + '.' + self.model)
+                #grid_show(fig, bx, xs.shape)
+                bx = grid_transform(bx, xs.shape)
+                imsave('logs/{}/{}.png'.format(self.data, t/100), bx)
+                #fig.savefig('logs/{}/{}.png'.format(self.data, t/100))
 
 
 if __name__ == '__main__':
