@@ -9,7 +9,7 @@ from visualize import *
 
 
 class WassersteinGAN(object):
-    def __init__(self, g_net, d_net, x_sampler, z_sampler, data, model):
+    def __init__(self, g_net, d_net, x_sampler, z_sampler, data, model, scale=10.0):
         self.model = model
         self.data = data
         self.g_net = g_net
@@ -29,21 +29,26 @@ class WassersteinGAN(object):
         self.g_loss = tf.reduce_mean(self.d_)
         self.d_loss = tf.reduce_mean(self.d) - tf.reduce_mean(self.d_)
 
-        self.reg = tc.layers.apply_regularization(
-            tc.layers.l1_regularizer(2.5e-5),
-            weights_list=[var for var in tf.global_variables() if 'weights' in var.name]
-        )
-        self.g_loss_reg = self.g_loss + self.reg
-        self.d_loss_reg = self.d_loss + self.reg
+        epsilon = tf.random_uniform([], 0.0, 1.0)
+        x_hat = epsilon * self.x + (1 - epsilon) * self.x_
+        d_hat = self.d_net(x_hat)
+
+        ddx = tf.gradients(d_hat, x_hat)[0]
+        print(ddx.get_shape().as_list())
+        ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1)) - 1
+        ddx = tf.reduce_mean(tf.square(ddx - 1.0) * scale)
+
+        self.d_loss = self.d_loss + ddx
+
+        print(self.d_loss.get_shape().as_list())
+
+        self.d_adam, self.g_adam = None, None
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.update_ops = tf.no_op()
+            self.d_adam = tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9)\
+                .minimize(self.d_loss, var_list=self.d_net.vars)
+            self.g_adam = tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9)\
+                .minimize(self.g_loss, var_list=self.g_net.vars)
 
-        self.d_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
-            .minimize(self.d_loss_reg, var_list=self.d_net.vars)
-        self.g_rmsprop = tf.train.RMSPropOptimizer(learning_rate=5e-5)\
-            .minimize(self.g_loss_reg, var_list=self.g_net.vars)
-
-        self.d_clip = [v.assign(tf.clip_by_value(v, -0.01, 0.01)) for v in self.d_net.vars]
         gpu_options = tf.GPUOptions(allow_growth=True)
         self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
@@ -59,11 +64,10 @@ class WassersteinGAN(object):
             for _ in range(0, d_iters):
                 bx = self.x_sampler(batch_size)
                 bz = self.z_sampler(batch_size, self.z_dim)
-                self.sess.run(self.d_clip)
-                self.sess.run(self.d_rmsprop, feed_dict={self.x: bx, self.z: bz})
+                self.sess.run(self.d_adam, feed_dict={self.x: bx, self.z: bz})
 
             bz = self.z_sampler(batch_size, self.z_dim)
-            self.sess.run(self.g_rmsprop, feed_dict={self.z: bz})
+            self.sess.run(self.g_adam, feed_dict={self.z: bz})
 
             if t % 100 == 0 or t < 100:
                 bx = self.x_sampler(batch_size)
@@ -75,7 +79,6 @@ class WassersteinGAN(object):
                 g_loss = self.sess.run(
                     self.g_loss, feed_dict={self.z: bz}
                 )
-                self.sess.run(self.update_ops)
                 print('Iter [%8d] Time [%5.4f] d_loss [%.4f] g_loss [%.4f]' %
                         (t + 1, time.time() - start_time, d_loss - g_loss, g_loss))
 
@@ -85,7 +88,7 @@ class WassersteinGAN(object):
                 bx = xs.data2img(bx)
                 fig = plt.figure(self.data + '.' + self.model)
                 grid_show(fig, bx, xs.shape)
-                fig.savefig('logs/{}/{}.pdf'.format(self.data, t/100))
+                fig.savefig('logs/{}/{}.png'.format(self.data, t/100))
 
 
 if __name__ == '__main__':

@@ -68,7 +68,7 @@ class Generator(object):
                 weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
                 activation_fn=tf.identity
             )
-            fc2 = tf.reshape(fc2, tf.pack([bs, 7, 7, 128]))
+            fc2 = tf.reshape(fc2, tf.stack([bs, 7, 7, 128]))
             fc2 = tc.layers.batch_norm(fc2)
             fc2 = tf.nn.relu(fc2)
             conv1 = tc.layers.convolution2d_transpose(
@@ -85,7 +85,7 @@ class Generator(object):
                 weights_regularizer=tc.layers.l2_regularizer(2.5e-5),
                 activation_fn=tf.sigmoid
             )
-            conv2 = tf.reshape(conv2, tf.pack([bs, 784]))
+            conv2 = tf.reshape(conv2, tf.stack([bs, 784]))
             return conv2
 
     @property

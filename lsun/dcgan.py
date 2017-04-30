@@ -54,7 +54,7 @@ class Generator(object):
         with tf.variable_scope(self.name) as vs:
             bs = tf.shape(z)[0]
             fc = tcl.fully_connected(z, 4 * 4 * 1024, activation_fn=tf.identity)
-            conv1 = tf.reshape(fc, tf.pack([bs, 4, 4, 1024]))
+            conv1 = tf.reshape(fc, tf.stack([bs, 4, 4, 1024]))
             conv1 = relu_batch_norm(conv1)
             conv2 = tcl.conv2d_transpose(
                 conv1, 512, [4, 4], [2, 2],
