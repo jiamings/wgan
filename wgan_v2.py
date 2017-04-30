@@ -35,7 +35,7 @@ class WassersteinGAN(object):
 
         ddx = tf.gradients(d_hat, x_hat)[0]
         print(ddx.get_shape().as_list())
-        ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1)) - 1
+        ddx = tf.sqrt(tf.reduce_sum(tf.square(ddx), axis=1))
         ddx = tf.reduce_mean(tf.square(ddx - 1.0) * scale)
 
         self.d_loss = self.d_loss + ddx
