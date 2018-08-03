@@ -16,6 +16,8 @@ def split(x):
 def grid_transform(x, size):
     a, b = split(x.shape[0])
     h, w, c = size[0], size[1], size[2]
+    a = int(a)
+    b = int(b)
     x = np.reshape(x, [a, b, h, w, c])
     x = np.transpose(x, [0, 2, 1, 3, 4])
     x = np.reshape(x, [a * h, b * w, c])
